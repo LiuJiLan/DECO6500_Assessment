@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multilingual Announcement Feed — Mid‑Fi Prototype</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --ok: #16a34a;
+      --bad: #dc2626;
+      --border: #e2e8f0;
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1220;
+        --card: #0f172a;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #60a5fa;
+        --ok: #22c55e;
+        --bad: #f87171;
+        --border: #1f2a44;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 10% -10%, rgba(37,99,235,.07), transparent 60%),
+                  radial-gradient(1000px 700px at 110% -10%, rgba(16,185,129,.06), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      font: 16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: saturate(1.3) blur(8px);
+      background: color-mix(in oklab, var(--bg) 85%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 16px 20px; }
+    .topbar { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand .logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), #10b981); box-shadow: var(--shadow); }
+    .brand h1 { font-size: 18px; margin: 0; letter-spacing: .2px; }
+
+    .controls { display: flex; align-items: center; gap: 12px; }
+    label { font-size: 14px; color: var(--muted); }
+    select, button, .pill {
+      font: inherit; color: var(--text);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+    }
+    select { min-width: 180px; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .container { max-width: 980px; margin: 24px auto; padding: 0 20px 40px; }
+    .intro { color: var(--muted); margin-bottom: 16px; font-size: 14px; }
+
+    .feed { display: grid; gap: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px 12px;
+      box-shadow: var(--shadow);
+      transition: transform .06s ease;
+    }
+    .card:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .card:hover { transform: translateY(-1px); }
+
+    .meta { display: flex; gap: 8px; row-gap: 6px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 13px; }
+    .dot { width: 4px; height: 4px; background: var(--muted); border-radius: 999px; display: inline-block; opacity: .5; }
+    .title { font-size: 18px; margin: 10px 0 6px; letter-spacing: .2px; }
+    .body { margin: 0 0 10px; font-size: 15px; }
+
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .btn { border: 1px solid var(--border); padding: 8px 10px; border-radius: 10px; background: var(--card); }
+    .btn.ok { border-color: color-mix(in oklab, var(--ok), var(--border)); }
+    .btn.bad { border-color: color-mix(in oklab, var(--bad), var(--border)); }
+    .btn[aria-pressed="true"].ok { background: color-mix(in oklab, var(--ok) 18%, var(--card)); }
+    .btn[aria-pressed="true"].bad { background: color-mix(in oklab, var(--bad) 18%, var(--card)); }
+    .thanks { color: var(--muted); font-size: 13px; margin-left: 6px; min-height: 1em; }
+
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+    .pill { font-size: 12px; color: var(--muted); }
+
+    .footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 24px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topbar" role="navigation" aria-label="Top bar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1 data-i18n="ui.appTitle">Announcement Feed</h1>
+      </div>
+      <div class="controls">
+        <label for="langSel" data-i18n="ui.languageLabel">Language</label>
+        <select id="langSel" aria-label="Language selector">
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+          <option value="ja">日本語</option>
+        </select>
+        <button id="resetBtn" class="pill" type="button" title="Reset demo feedback">↺ <span data-i18n="ui.reset">Reset demo</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p class="intro" data-i18n="ui.intro">A mid‑fidelity prototype showing a multilingual announcement feed with language switching, source & timestamp, and a simple “works / doesn’t work” feedback capture. All data is local to your browser for demo purposes.</p>
+
+    <section class="feed" aria-live="polite">
+      <!-- Card 1 -->
+      <article class="card" tabindex="0" data-id="a1">
+        <div class="meta">
+          <span class="source" data-i18n="ui.sourcePrefix">Source</span>:
+          <a href="#" class="sourceVal" data-src="Brisbane City Council">Brisbane City Council</a>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="timePrefix" data-i18n="ui.updated">Updated</span>:
+          <time class="timeVal" datetime="2025-09-01T09:00:00+10:00" data-iso="2025-09-01T09:00:00+10:00">2025‑09‑01 09:00</time>
+        </div>
+        <h2 class="title" data-i18n="a1.title">Temporary maintenance for online permit applications</h2>
+        <p class="body" data-i18n="a1.body">The city services portal will be unavailable on Sep 3 from 10:00–14:00 for scheduled maintenance. For urgent matters, call 133 BCC.</p>
+        <div class="actions">
+          <button class="btn ok" data-action="works" aria-pressed="false" aria-label="Mark as works" data-i18n="ui.works">Works</button>
+          <button class="btn bad" data-action="broken" aria-pressed="false" aria-label="Mark as doesn’t work" data-i18n="ui.broken">Doesn’t work</button>
+          <span class="thanks" aria-live="polite"></span>
+        </div>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="card" tabindex="0" data-id="a2">
+        <div class="meta">
+          <span class="source" data-i18n="ui.sourcePrefix">Source</span>:
+          <a href="#" class="sourceVal" data-src="TransLink QLD">TransLink QLD</a>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="timePrefix" data-i18n="ui.updated">Updated</span>:
+          <time class="timeVal" datetime="2025-09-02T07:30:00+10:00" data-iso="2025-09-02T07:30:00+10:00">2025‑09‑02 07:30</time>
+        </div>
+        <h2 class="title" data-i18n="a2.title">Bus route 204—temporary stop relocation</h2>
+        <p class="body" data-i18n="a2.body">From Sep 4–6, stop 0123 at East Brisbane will be moved 120m south due to road works. On‑board announcements will guide you to the temporary stop.</p>
+        <div class="actions">
+          <button class="btn ok" data-action="works" aria-pressed="false" data-i18n="ui.works">Works</button>
+          <button class="btn bad" data-action="broken" aria-pressed="false" data-i18n="ui.broken">Doesn’t work</button>
+          <span class="thanks" aria-live="polite"></span>
+        </div>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="card" tabindex="0" data-id="a3">
+        <div class="meta">
+          <span class="source" data-i18n="ui.sourcePrefix">Source</span>:
+          <a href="#" class="sourceVal" data-src="Community Health">Community Health</a>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="timePrefix" data-i18n="ui.updated">Updated</span>:
+          <time class="timeVal" datetime="2025-09-03T08:15:00+10:00" data-iso="2025-09-03T08:15:00+10:00">2025‑09‑03 08:15</time>
+        </div>
+        <h2 class="title" data-i18n="a3.title">Free flu vaccine pop‑up clinic—Woolloongabba</h2>
+        <p class="body" data-i18n="a3.body">Free flu shots available on Sep 7, 09:00–16:00 at the community centre (ID required). Walk‑ins welcome; multilingual volunteers on site.</p>
+        <div class="actions">
+          <button class="btn ok" data-action="works" aria-pressed="false" data-i18n="ui.works">Works</button>
+          <button class="btn bad" data-action="broken" aria-pressed="false" data-i18n="ui.broken">Doesn’t work</button>
+          <span class="thanks" aria-live="polite"></span>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer" data-i18n="ui.footer">Prototype only: feedback stays on your device (localStorage). Switch languages from the top right to preview multilingual content.</p>
+  </main>
+
+  <script>
+    // --- Simple i18n dictionary ---
+    const I18N = {
+      en: {
+        ui: {
+          appTitle: "Announcement Feed",
+          languageLabel: "Language",
+          reset: "Reset demo",
+          intro: "A mid‑fidelity prototype showing a multilingual announcement feed with language switching, source & timestamp, and a simple “works / doesn’t work” feedback capture. All data is local to your browser for demo purposes.",
+          sourcePrefix: "Source",
+          updated: "Updated",
+          works: "Works",
+          broken: "Doesn’t work",
+          thanksWorks: "Thanks — recorded as ‘Works’.",
+          thanksBroken: "Thanks — recorded as ‘Doesn’t work’.",
+          footer: "Prototype only: feedback stays on your device (localStorage). Switch languages from the top right to preview multilingual content."
+        },
+        a1: {
+          title: "Temporary maintenance for online permit applications",
+          body: "The city services portal will be unavailable on Sep 3 from 10:00–14:00 for scheduled maintenance. For urgent matters, call 133 BCC."
+        },
+        a2: {
+          title: "Bus route 204—temporary stop relocation",
+          body: "From Sep 4–6, stop 0123 at East Brisbane will be moved 120m south due to road works. On‑board announcements will guide you to the temporary stop."
+        },
+        a3: {
+          title: "Free flu vaccine pop‑up clinic—Woolloongabba",
+          body: "Free flu shots available on Sep 7, 09:00–16:00 at the community centre (ID required). Walk‑ins welcome; multilingual volunteers on site."
+        }
+      },
+      zh: {
+        ui: {
+          appTitle: "公告信息流",
+          languageLabel: "语言",
+          reset: "重置演示",
+          intro: "中保真原型：演示多语言公告信息流，支持语言切换、来源与时间戳，以及“可用/不可用”的简单反馈采集。所有数据仅存储在本地浏览器，用于演示。",
+          sourcePrefix: "来源",
+          updated: "更新时间",
+          works: "可用",
+          broken: "不可用",
+          thanksWorks: "感谢反馈——已记录为“可用”。",
+          thanksBroken: "感谢反馈——已记录为“不可用”。",
+          footer: "仅为原型：反馈保存在你的设备（localStorage）中。右上角可切换语言以预览多语言内容。"
+        },
+        a1: {
+          title: "线上许可申请临时维护",
+          body: "城市服务门户将于 9 月 3 日 10:00–14:00 维护暂停。如有紧急事项，请拨打 133 BCC。"
+        },
+        a2: {
+          title: "204 路公交临时站点调整",
+          body: "因道路施工，9 月 4–6 日 East Brisbane 的 0123 站点向南移动约 120 米。车载广播将指引至临时站点。"
+        },
+        a3: {
+          title: "Woolloongabba 免费流感疫苗快闪诊所",
+          body: "9 月 7 日 09:00–16:00 社区中心提供免费流感疫苗（需携带证件）。现场支持多语言志愿者，欢迎随到随打。"
+        }
+      },
+      ja: {
+        ui: {
+          appTitle: "お知らせフィード",
+          languageLabel: "言語",
+          reset: "デモをリセット",
+          intro: "中忠実度プロトタイプ：言語切替、発信元・タイムスタンプ、“使える/使えない”の簡易フィードバックを備えた多言語のお知らせフィードを示します。データはデモ目的でローカル保存のみです。",
+          sourcePrefix: "発信元",
+          updated: "更新",
+          works: "使える",
+          broken: "使えない",
+          thanksWorks: "ご協力ありがとうございます（“使える”として記録）。",
+          thanksBroken: "ご協力ありがとうございます（“使えない”として記録）。",
+          footer: "プロトタイプのみ：フィードバックは端末内（localStorage）に保存されます。右上から言語を切替えて多言語表示を確認できます。"
+        },
+        a1: {
+          title: "オンライン許可申請の一時メンテナンス",
+          body: "9 月 3 日 10:00〜14:00 にシステム保守のため、市サービスポータルは利用できません。お急ぎの場合は 133 BCC へお電話ください。"
+        },
+        a2: {
+          title: "バス 204 系統—一時停留所の移設",
+          body: "道路工事のため、9 月 4〜6 日、East Brisbane の停留所 0123 は南へ約 120 m 移設します。車内アナウンスに従ってください。"
+        },
+        a3: {
+          title: "無料インフルエンザ予防接種ポップアップ診療所（Woolloongabba）",
+          body: "9 月 7 日 09:00〜16:00、コミュニティセンターで無料接種を実施（身分証が必要）。多言語ボランティアが常駐、予約不要です。"
+        }
+      }
+    };
+
+    const sel = document.getElementById('langSel');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Restore language preference
+    const savedLang = localStorage.getItem('demo.lang') || 'en';
+    sel.value = savedLang;
+    setLanguage(savedLang);
+
+    // Format all timestamps to local human format
+    document.querySelectorAll('.timeVal').forEach(el => {
+      const iso = el.getAttribute('data-iso');
+      el.textContent = formatLocal(iso);
+    });
+
+    sel.addEventListener('change', (e) => {
+      const lang = e.target.value;
+      localStorage.setItem('demo.lang', lang);
+      setLanguage(lang);
+    });
+
+    // Feedback handling (local only)
+    document.querySelectorAll('.card').forEach(card => {
+      const id = card.dataset.id;
+      const okBtn = card.querySelector('button[data-action="works"]');
+      const badBtn = card.querySelector('button[data-action="broken"]');
+      const thanks = card.querySelector('.thanks');
+
+      const restore = () => {
+        const state = localStorage.getItem(`demo.fb.${id}`);
+        okBtn.setAttribute('aria-pressed', state === 'works');
+        badBtn.setAttribute('aria-pressed', state === 'broken');
+        thanks.textContent = state ? (state === 'works' ? t('ui.thanksWorks') : t('ui.thanksBroken')) : '';
+      };
+
+      okBtn.addEventListener('click', () => {
+        localStorage.setItem(`demo.fb.${id}`, 'works');
+        restore();
+      });
+      badBtn.addEventListener('click', () => {
+        localStorage.setItem(`demo.fb.${id}`, 'broken');
+        restore();
+      });
+
+      // initial
+      restore();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      Object.keys(localStorage).forEach(k => { if (k.startsWith('demo.fb.')) localStorage.removeItem(k); });
+      document.querySelectorAll('.card .thanks').forEach(n => n.textContent = '');
+      document.querySelectorAll('.btn[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    });
+
+    function setLanguage(lang) {
+      document.documentElement.lang = lang;
+      // Replace all i18n-bound nodes
+      document.querySelectorAll('[data-i18n]').forEach(node => {
+        const key = node.getAttribute('data-i18n');
+        const val = deepGet(I18N[lang], key) || deepGet(I18N.en, key) || '';
+        if (node.matches('input, textarea')) node.setAttribute('placeholder', val);
+        else node.textContent = val;
+      });
+      // Reapply feedback messages in selected language
+      document.querySelectorAll('.card').forEach(card => {
+        const id = card.dataset.id;
+        const thanks = card.querySelector('.thanks');
+        const state = localStorage.getItem(`demo.fb.${id}`);
+        thanks.textContent = state ? (state === 'works' ? t('ui.thanksWorks') : t('ui.thanksBroken')) : '';
+      });
+    }
+
+    function t(key) {
+      const lang = document.documentElement.lang || 'en';
+      return deepGet(I18N[lang], key) || deepGet(I18N.en, key) || key;
+    }
+
+    function deepGet(obj, path) {
+      return path.split('.').reduce((o, k) => (o && k in o) ? o[k] : undefined, obj);
+    }
+
+    function formatLocal(iso) {
+      try {
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+          year: 'numeric', month: 'short', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
+      } catch {
+        return iso;
+      }
+    }
+  </script>
+</body>
+</html>
